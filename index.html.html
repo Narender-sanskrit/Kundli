@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="hi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>कुंडली सॉफ्टवेयर</title>
+<script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
+<style>
+:root{--bg:#f2f5fa;--fg:#161d33;--card:#fff;--ac:#2b3a8f;--hi:#e6a800;--bd:#cdd5e6;--mu:#5a6482;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10142a;--fg:#e8ecfa;--card:#1a2040;--ac:#8fa2ff;--hi:#ffc83d;--bd:#34406e;--mu:#9aa6d0}}
+:root[data-theme="dark"]{--bg:#10142a;--fg:#e8ecfa;--card:#1a2040;--ac:#8fa2ff;--hi:#ffc83d;--bd:#34406e;--mu:#9aa6d0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 system-ui,"Noto Sans Devanagari","Mangal",sans-serif}
+main{max-width:760px;margin:0 auto;padding:16px}
+h1{font-size:1.5rem;margin:.2rem 0 .8rem}
+h2{font-size:1.1rem;margin:1rem 0 .4rem}
+fieldset{border:1px solid var(--bd);border-radius:6px;background:var(--card);margin:0 0 12px;padding:10px 12px}
+legend{font-weight:600;padding:0 6px}
+.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+label{display:block;font-size:.8rem;color:var(--mu)}
+input,select{width:100%;padding:7px;border:1px solid var(--bd);border-radius:4px;background:var(--bg);color:var(--fg);font:inherit}
+button{font:inherit;cursor:pointer;border:1px solid var(--ac);background:var(--ac);color:var(--bg);padding:8px 16px;border-radius:4px}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--hi);outline-offset:2px}
+.tabs{display:flex;gap:6px;overflow-x:auto;margin:14px 0 8px}
+.tabs button{background:transparent;color:var(--ac);white-space:nowrap}
+.tabs button.on{background:var(--ac);color:var(--bg)}
+.w{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{border-bottom:1px solid var(--bd);padding:5px 6px;text-align:left;white-space:nowrap}
+th{color:var(--mu);font-weight:600}
+.ch{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,86px);max-width:380px;border:2px solid var(--ac);margin:8px 0}
+.ch>div{border:1px solid var(--bd);padding:3px;font-size:.78rem;line-height:1.25;background:var(--card)}
+.ch small{color:var(--mu);display:block}
+.ch .lg{box-shadow:inset 0 0 0 2px var(--hi)}
+.ch .ct{grid-area:2/2/4/4;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:600;color:var(--ac)}
+details{border-bottom:1px solid var(--bd);padding:4px 0}
+summary{cursor:pointer}
+.big{font-size:1.6rem;font-weight:700;color:var(--ac)}
+.note{color:var(--mu);font-size:.8rem}
+.pane{display:none}.pane.on{display:block}
+</style></head><body><main>
+<h1>कुंडली सॉफ्टवेयर</h1>
+<div id="forms"></div>
+<button id="go">गणना करें</button>
+<div class="tabs" id="tabs"></div>
+<div id="out"><p class="note">जन्म विवरण भरकर "गणना करें" दबाएँ। मिलान के लिए वधू का विवरण भी भरें।</p></div>
+</main>
+<script>
+const R=["मेष","वृषभ","मिथुन","कर्क","सिंह","कन्या","तुला","वृश्चिक","धनु","मकर","कुंभ","मीन"];
+const N=["अश्विनी","भरणी","कृत्तिका","रोहिणी","मृगशिरा","आर्द्रा","पुनर्वसु","पुष्य","आश्लेषा","मघा","पू.फाल्गुनी","उ.फाल्गुनी","हस्त","चित्रा","स्वाती","विशाखा","अनुराधा","ज्येष्ठा","मूल","पू.षाढ़ा","उ.षाढ़ा","श्रवण","धनिष्ठा","शतभिषा","पू.भाद्रपद","उ.भाद्रपद","रेवती"];
+const P={Su:"सूर्य",Mo:"चंद्र",Ma:"मंगल",Me:"बुध",Ju:"गुरु",Ve:"शुक्र",Sa:"शनि",Ra:"राहु",Ke:"केतु"};
+const PS={Su:"सू",Mo:"चं",Ma:"मं",Me:"बु",Ju:"गु",Ve:"शु",Sa:"श",Ra:"रा",Ke:"के"};
+const PL=Object.keys(P);
+const norm=x=>((x%360)+360)%360, NW=360/27;
+const $=id=>document.getElementById(id);
+
+function pf(id,t,d){return `<fieldset><legend>${t}</legend><div class="g">
+<div><label>नाम</label><input id="${id}n" value="${d.n}"></div>
+<div><label>जन्म तिथि</label><input id="${id}d" type="date" value="${d.d}"></div>
+<div><label>जन्म समय</label><input id="${id}t" type="time" value="${d.t}"></div>
+<div style="grid-column:1/-1"><label>जन्म स्थान (शहर/गाँव/जिला अंग्रेज़ी में लिखें, 3 अक्षर के बाद सूची आएगी)</label><input id="${id}p" list="pl" value="Delhi, India" oninput="ps('${id}')" autocomplete="off"></div>
+<div><label>अक्षांश</label><input id="${id}la" type="number" step="0.01" value="${C[0][1]}"></div>
+<div><label>देशांतर</label><input id="${id}lo" type="number" step="0.01" value="${C[0][2]}"></div>
+<div><label>UTC अंतर (खाली = स्वतः)</label><input id="${id}z" type="number" step="0.25" placeholder="स्वतः"></div></div></fieldset>`}
+const DB=[
+["India","Asia/Kolkata","Delhi,28.61,77.21;Mumbai,19.08,72.88;Kolkata,22.57,88.36;Chennai,13.08,80.27;Bengaluru,12.97,77.59;Hyderabad,17.39,78.49;Ahmedabad,23.02,72.57;Pune,18.52,73.86;Jaipur,26.91,75.79;Lucknow,26.85,80.95;Kanpur,26.45,80.33;Nagpur,21.15,79.09;Indore,22.72,75.86;Bhopal,23.26,77.41;Patna,25.59,85.14;Varanasi,25.32,82.99;Prayagraj,25.44,81.85;Agra,27.18,78.01;Meerut,28.98,77.71;Ghaziabad,28.67,77.44;Noida,28.54,77.39;Gurugram,28.46,77.03;Faridabad,28.41,77.31;Chandigarh,30.73,76.78;Ludhiana,30.90,75.86;Amritsar,31.63,74.87;Jalandhar,31.33,75.58;Ambala,30.38,76.78;Karnal,29.69,76.99;Panipat,29.39,76.97;Rohtak,28.89,76.57;Hisar,29.15,75.72;Sonipat,28.99,77.02;Kurukshetra,29.97,76.88;Dehradun,30.32,78.03;Haridwar,29.95,78.16;Rishikesh,30.09,78.27;Shimla,31.10,77.17;Jammu,32.73,74.87;Srinagar,34.08,74.80;Ranchi,23.34,85.31;Jamshedpur,22.80,86.18;Dhanbad,23.80,86.43;Raipur,21.25,81.63;Bhubaneswar,20.30,85.82;Cuttack,20.46,85.88;Puri,19.81,85.83;Guwahati,26.14,91.74;Shillong,25.57,91.88;Imphal,24.82,93.94;Agartala,23.83,91.28;Gangtok,27.34,88.61;Siliguri,26.73,88.40;Visakhapatnam,17.69,83.22;Vijayawada,16.51,80.65;Tirupati,13.63,79.42;Kochi,9.93,76.27;Thiruvananthapuram,8.52,76.94;Kozhikode,11.26,75.78;Coimbatore,11.02,76.96;Madurai,9.93,78.12;Tiruchirappalli,10.79,78.70;Mysuru,12.30,76.64;Mangaluru,12.91,74.86;Panaji,15.50,73.83;Surat,21.17,72.83;Vadodara,22.31,73.18;Rajkot,22.30,70.80;Jodhpur,26.24,73.02;Udaipur,24.59,73.71;Kota,25.18,75.83;Bikaner,28.02,73.31;Ajmer,26.45,74.64;Gwalior,26.22,78.18;Jabalpur,23.18,79.94;Ujjain,23.18,75.78;Nashik,20.00,73.79;Aurangabad,19.88,75.34;Kolhapur,16.70,74.24;Gorakhpur,26.76,83.37;Mathura,27.49,77.67;Ayodhya,26.80,82.20;Bareilly,28.35,79.42;Moradabad,28.84,78.77;Aligarh,27.88,78.08;Muzaffarpur,26.12,85.39;Gaya,24.80,85.00;Bhagalpur,25.24,87.01;Darbhanga,26.15,85.90;Puducherry,11.93,79.83;Port Blair,11.62,92.73"],
+["Nepal","Asia/Kathmandu","Kathmandu,27.72,85.32;Pokhara,28.21,83.99;Biratnagar,26.45,87.28"],
+["Bangladesh","Asia/Dhaka","Dhaka,23.81,90.41;Chittagong,22.36,91.78"],
+["Sri Lanka","Asia/Colombo","Colombo,6.93,79.86;Kandy,7.29,80.64"],
+["Pakistan","Asia/Karachi","Karachi,24.86,67.01;Lahore,31.55,74.34;Islamabad,33.68,73.05"],
+["Afghanistan","Asia/Kabul","Kabul,34.53,69.17"],
+["Bhutan","Asia/Thimphu","Thimphu,27.47,89.64"],
+["Maldives","Indian/Maldives","Male,4.18,73.51"],
+["UAE","Asia/Dubai","Dubai,25.20,55.27;Abu Dhabi,24.45,54.38"],
+["Qatar","Asia/Qatar","Doha,25.29,51.53"],
+["Saudi Arabia","Asia/Riyadh","Riyadh,24.71,46.68;Jeddah,21.54,39.17;Mecca,21.39,39.86"],
+["Oman","Asia/Muscat","Muscat,23.59,58.41"],
+["Kuwait","Asia/Kuwait","Kuwait City,29.38,47.99"],
+["Bahrain","Asia/Bahrain","Manama,26.23,50.59"],
+["Iran","Asia/Tehran","Tehran,35.69,51.39"],
+["Turkey","Europe/Istanbul","Istanbul,41.01,28.98"],
+["Israel","Asia/Jerusalem","Tel Aviv,32.09,34.78"],
+["Egypt","Africa/Cairo","Cairo,30.04,31.24"],
+["Kenya","Africa/Nairobi","Nairobi,-1.29,36.82"],
+["Nigeria","Africa/Lagos","Lagos,6.52,3.38"],
+["South Africa","Africa/Johannesburg","Johannesburg,-26.20,28.05;Cape Town,-33.92,18.42;Durban,-29.86,31.02"],
+["Mauritius","Indian/Mauritius","Port Louis,-20.16,57.50"],
+["Ethiopia","Africa/Addis_Ababa","Addis Ababa,9.03,38.74"],
+["Ghana","Africa/Accra","Accra,5.60,-0.19"],
+["Thailand","Asia/Bangkok","Bangkok,13.76,100.50"],
+["Singapore","Asia/Singapore","Singapore,1.35,103.82"],
+["Malaysia","Asia/Kuala_Lumpur","Kuala Lumpur,3.14,101.69"],
+["Indonesia","Asia/Jakarta","Jakarta,-6.21,106.85;Denpasar,-8.65,115.22,Asia/Makassar"],
+["Philippines","Asia/Manila","Manila,14.60,120.98"],
+["Vietnam","Asia/Ho_Chi_Minh","Hanoi,21.03,105.85;Ho Chi Minh City,10.82,106.63"],
+["Myanmar","Asia/Yangon","Yangon,16.84,96.17"],
+["Hong Kong","Asia/Hong_Kong","Hong Kong,22.32,114.17"],
+["China","Asia/Shanghai","Beijing,39.90,116.41;Shanghai,31.23,121.47"],
+["Japan","Asia/Tokyo","Tokyo,35.68,139.69"],
+["South Korea","Asia/Seoul","Seoul,37.57,126.98"],
+["Taiwan","Asia/Taipei","Taipei,25.03,121.57"],
+["Australia","Australia/Sydney","Sydney,-33.87,151.21;Melbourne,-37.81,144.96,Australia/Melbourne;Brisbane,-27.47,153.03,Australia/Brisbane;Perth,-31.95,115.86,Australia/Perth"],
+["New Zealand","Pacific/Auckland","Auckland,-36.85,174.76"],
+["Fiji","Pacific/Fiji","Suva,-18.14,178.44"],
+["UK","Europe/London","London,51.51,-0.13;Manchester,53.48,-2.24;Birmingham,52.49,-1.89;Leicester,52.64,-1.13"],
+["Ireland","Europe/Dublin","Dublin,53.35,-6.26"],
+["France","Europe/Paris","Paris,48.86,2.35"],
+["Germany","Europe/Berlin","Berlin,52.52,13.40;Frankfurt,50.11,8.68;Munich,48.14,11.58"],
+["Netherlands","Europe/Amsterdam","Amsterdam,52.37,4.90"],
+["Belgium","Europe/Brussels","Brussels,50.85,4.35"],
+["Switzerland","Europe/Zurich","Zurich,47.38,8.54"],
+["Italy","Europe/Rome","Rome,41.90,12.50"],
+["Spain","Europe/Madrid","Madrid,40.42,-3.70"],
+["Portugal","Europe/Lisbon","Lisbon,38.72,-9.14"],
+["Austria","Europe/Vienna","Vienna,48.21,16.37"],
+["Sweden","Europe/Stockholm","Stockholm,59.33,18.07"],
+["Norway","Europe/Oslo","Oslo,59.91,10.75"],
+["Denmark","Europe/Copenhagen","Copenhagen,55.68,12.57"],
+["Finland","Europe/Helsinki","Helsinki,60.17,24.94"],
+["Greece","Europe/Athens","Athens,37.98,23.73"],
+["Russia","Europe/Moscow","Moscow,55.76,37.62"],
+["Poland","Europe/Warsaw","Warsaw,52.23,21.01"],
+["Czechia","Europe/Prague","Prague,50.08,14.44"],
+["Hungary","Europe/Budapest","Budapest,47.50,19.04"],
+["Ukraine","Europe/Kyiv","Kyiv,50.45,30.52"],
+["USA","America/New_York","New York,40.71,-74.01;Washington DC,38.91,-77.04;Boston,42.36,-71.06;Atlanta,33.75,-84.39;Miami,25.76,-80.19;Chicago,41.88,-87.63,America/Chicago;Houston,29.76,-95.37,America/Chicago;Dallas,32.78,-96.80,America/Chicago;Denver,39.74,-104.99,America/Denver;Phoenix,33.45,-112.07,America/Phoenix;Los Angeles,34.05,-118.24,America/Los_Angeles;San Francisco,37.77,-122.42,America/Los_Angeles;San Jose,37.34,-121.89,America/Los_Angeles;Seattle,47.61,-122.33,America/Los_Angeles"],
+["Canada","America/Toronto","Toronto,43.65,-79.38;Montreal,45.50,-73.57;Vancouver,49.28,-123.12,America/Vancouver;Calgary,51.05,-114.07,America/Edmonton"],
+["Mexico","America/Mexico_City","Mexico City,19.43,-99.13"],
+["Brazil","America/Sao_Paulo","Sao Paulo,-23.55,-46.63"],
+["Argentina","America/Argentina/Buenos_Aires","Buenos Aires,-34.60,-58.38"],
+["Peru","America/Lima","Lima,-12.05,-77.04"],
+["Colombia","America/Bogota","Bogota,4.71,-74.07"],
+["Chile","America/Santiago","Santiago,-33.45,-70.67"],
+["Trinidad","America/Port_of_Spain","Port of Spain,10.66,-61.52"],
+["Guyana","America/Guyana","Georgetown,6.80,-58.16"],
+["Suriname","America/Paramaribo","Paramaribo,5.85,-55.20"]];
+const PLACES=DB.flatMap(([c,z,t])=>t.split(";").map(x=>{const a=x.split(",");return{l:a[0]+", "+c,la:+a[1],lo:+a[2],tz:a[3]||z}}));
+document.body.insertAdjacentHTML("beforeend",'<datalist id="pl"></datalist>');
+let RM=[],tmr;
+function dl(){const seen=new Set();$("pl").innerHTML=RM.concat(PLACES).filter(p=>!seen.has(p.l)&&seen.add(p.l)).map(p=>`<option value="${p.l}">`).join("")}
+dl();
+function sp(id){const e=$(id+"p"),p=RM.concat(PLACES).find(x=>x.l.toLowerCase()==e.value.trim().toLowerCase());
+ if(p){$(id+"la").value=p.la;$(id+"lo").value=p.lo;e.dataset.tz=p.tz}else e.dataset.tz=""}
+function ps(id){const v=$(id+"p").value.trim();clearTimeout(tmr);sp(id);if(v.length<3)return;
+ tmr=setTimeout(async()=>{try{
+  const j=await(await fetch("https://geocoding-api.open-meteo.com/v1/search?count=20&language=en&format=json&name="+encodeURIComponent(v.split(",")[0].trim()))).json();
+  const c={};RM=(j.results||[]).map(x=>{let l=[x.name,x.admin2,x.admin1,x.country].filter(Boolean).join(", ");c[l]=(c[l]||0)+1;if(c[l]>1)l+=" ("+x.latitude.toFixed(2)+", "+x.longitude.toFixed(2)+")";return{l,la:x.latitude,lo:x.longitude,tz:x.timezone}});
+  dl();sp(id)}catch(e){}},350)}
+function offs(tz,y,m,d,h,mi){const f=new Intl.DateTimeFormat("en-US",{timeZone:tz,hourCycle:"h23",year:"numeric",month:"numeric",day:"numeric",hour:"numeric",minute:"numeric"});
+ const g=u=>{const p=Object.fromEntries(f.formatToParts(new Date(u)).map(x=>[x.type,x.value]));return Date.UTC(p.year,p.month-1,p.day,p.hour,p.minute)-u};
+ const t0=Date.UTC(y,m-1,d,h,mi);return g(t0-g(t0))/36e5}
+$("forms").innerHTML=pf("a","वर / जातक",{n:"वर",d:"1995-01-15",t:"10:30"})+pf("b","वधू (मिलान के लिए)",{n:"वधू",d:"1997-06-20",t:"16:45"});
+
+function calc(q){
+ const [y,m,d]=q.d.split("-").map(Number),[h,mi]=q.t.split(":").map(Number);
+ const z=(q.z===null&&q.tz)?offs(q.tz,y,m,d,h,mi):(q.z===null?5.5:q.z), utc=new Date(Date.UTC(y,m-1,d,h,mi)-z*36e5), t=Astronomy.MakeTime(utc), T=t.tt/36525;
+ const ay=23.85306+1.39697*T, tr={};
+ tr.Su=Astronomy.SunPosition(t).elon; tr.Mo=Astronomy.EclipticGeoMoon(t).lon;
+ for(const [k,b] of [["Ma","Mars"],["Me","Mercury"],["Ju","Jupiter"],["Ve","Venus"],["Sa","Saturn"]])
+  tr[k]=Astronomy.Ecliptic(Astronomy.GeoVector(b,t,true)).elon;
+ tr.Ra=norm(125.04452-1934.136261*T); tr.Ke=tr.Ra+180;
+ const rad=Math.PI/180, ra=norm(Astronomy.SiderealTime(t)*15+q.lon)*rad, ep=Astronomy.e_tilt(t).tobl*rad, la=q.lat*rad;
+ const asc=Math.atan2(Math.cos(ra),-(Math.sin(ra)*Math.cos(ep)+Math.tan(la)*Math.sin(ep)))/rad;
+ const s={Lg:norm(asc-ay)}; for(const k of PL)s[k]=norm(tr[k]-ay);
+ return {n:q.n,z,utc,s,ay,moon:s.Mo,rs:Math.floor(s.Mo/30),nk:Math.floor(s.Mo/NW)};
+}
+const dm=x=>{const d=x%30;return Math.floor(d)+"°"+String(Math.floor((d%1)*60)).padStart(2,"0")+"′"};
+const fd=ms=>new Date(ms).toLocaleDateString("en-GB");
+
+// ---- dasha ----
+const VIM=[["Ke",7],["Ve",20],["Su",6],["Mo",10],["Ma",7],["Ra",18],["Ju",16],["Sa",19],["Me",17]];
+const ASH=[["Su",6],["Mo",15],["Ma",8],["Me",17],["Sa",10],["Ju",19],["Ra",12],["Ve",21]];
+const AG=[["Su",4],["Mo",3],["Ma",4],["Me",3],["Sa",2],["Ju",4],["Ra",3],["Ve",4]]; // आर्द्रा से, अभिजित छोड़कर
+function dasha(seq,i0,fr,tot,b){
+ const Y=365.25*864e5;let t=b.getTime()-fr*seq[i0][1]*Y,o=[];
+ for(let k=0;k<seq.length;k++){const i=(i0+k)%seq.length,[pl,yr]=seq[i],s=t;t+=yr*Y;
+  let u=s,ad=[];for(let j=0;j<seq.length;j++){const [p2,y2]=seq[(i+j)%seq.length],du=yr*y2/tot*Y;ad.push([p2,u,u+du]);u+=du}
+  o.push({pl,s,e:t,ad})}
+ return o}
+function vim(c){const f=(c.moon%NW)/NW;return dasha(VIM,c.nk%9,f,120,c.utc)}
+function ash(c){let m=norm(c.moon-5*NW),cum=0;
+ for(let i=0;i<8;i++){const w=AG[i][1]*NW;if(m<cum+w)return dasha(ASH,i,(m-cum)/w,108,c.utc);cum+=w}}
+function dtab(D,b){const now=Date.now();
+ return D.map(x=>`<details${now>=x.s&&now<x.e?" open":""}><summary><b>${P[x.pl]}</b> महादशा: ${fd(Math.max(x.s,b))} से ${fd(x.e)}${now>=x.s&&now<x.e?" (वर्तमान)":""}</summary>
+ <div class="w"><table>${x.ad.filter(a=>a[2]>b).map(a=>`<tr><td>${P[x.pl]}-${P[a[0]]}</td><td>${fd(Math.max(a[1],b))}</td><td>${fd(a[2])}</td></tr>`).join("")}</table></div></details>`).filter((_,i)=>D[i].e>b).join("")}
+
+// ---- varga ----
+function vg(x,v){const s=Math.floor(x/30),d=x%30,od=s%2==0;
+ if(v==1)return s;
+ if(v==2)return (d<15)==od?4:3;
+ if(v==3)return (s+4*Math.floor(d/10))%12;
+ if(v==9)return ([s,s+8,s+4][s%3]+Math.floor(d/(30/9)))%12;
+ if(v==12)return (s+Math.floor(d/2.5))%12;
+ const L=od?[[5,0],[10,10],[18,8],[25,2],[30,6]]:[[5,1],[12,5],[20,11],[25,9],[30,7]];
+ return L.find(l=>d<l[0])[1]}
+const VV=[1,2,3,9,12,30],VN={1:"D1 राशि",2:"D2 होरा",3:"D3 द्रेष्काण",9:"D9 नवांश",12:"D12 द्वादशांश",30:"D30 त्रिंशांश"};
+
+// ---- chart ----
+const POS={11:[1,1],0:[1,2],1:[1,3],2:[1,4],3:[2,4],4:[3,4],5:[4,4],6:[4,3],7:[4,2],8:[4,1],9:[3,1],10:[2,1]};
+function chart(c,v){const lg=vg(c.s.Lg,v),h={};
+ for(const k of ["Lg",...PL]){const r=vg(c.s[k],v);(h[r]=h[r]||[]).push(k=="Lg"?"ल":PS[k])}
+ let o='<div class="ch">';
+ for(let r=0;r<12;r++)o+=`<div class="${r==lg?"lg":""}" style="grid-area:${POS[r][0]}/${POS[r][1]}"><small>${R[r]}</small>${(h[r]||[]).join(" ")}</div>`;
+ return o+`<div class="ct">${VN[v]}</div></div>`}
+
+
+// ---- North Indian chart ----
+const HC=[[150,78],[75,36],[34,76],[75,150],[34,224],[75,264],[150,222],[225,264],[266,224],[225,150],[266,76],[225,36]];
+function nchart(c,v){const lg=vg(c.s.Lg,v),h=Array.from({length:12},()=>[]);
+ for(const k of PL)h[(vg(c.s[k],v)-lg+12)%12].push(PS[k]);
+ let o=`<svg viewBox="0 0 300 300" role="img" aria-label="उत्तर भारतीय ${VN[v]}" style="max-width:380px;width:100%;display:block;margin:8px 0"><g fill="var(--card)" stroke="var(--ac)" stroke-width="2"><rect x="1" y="1" width="298" height="298"/><path d="M1 1L299 299M299 1L1 299M150 1L299 150L150 299L1 150Z" fill="none"/></g>`;
+ for(let i=0;i<12;i++){const [x,y]=HC[i],r=(lg+i)%12+1;
+  o+=`<text x="${x}" y="${y-13}" text-anchor="middle" font-size="10" fill="var(--mu)">${r}</text><text x="${x}" y="${y+3}" text-anchor="middle" font-size="12" fill="var(--fg)">${h[i].join(" ")}</text>`}
+ return o+`<text x="150" y="${HC[0][1]+17}" text-anchor="middle" font-size="10" fill="var(--hi)" font-weight="700">लग्न</text></svg>`}
+
+// ---- milan ----
+const LORD=["Ma","Ve","Me","Mo","Su","Me","Ve","Ma","Ju","Sa","Sa","Ju"];
+const FR={Su:"Mo Ma Ju",Mo:"Su Me",Ma:"Su Mo Ju",Me:"Su Ve",Ju:"Su Mo Ma",Ve:"Me Sa",Sa:"Me Ve"};
+const EN={Su:"Ve Sa",Mo:"",Ma:"Me",Me:"Mo",Ju:"Me Ve",Ve:"Su Mo",Sa:"Su Mo Ma"};
+const rel=(a,b)=>FR[a].includes(b)?1:EN[a].includes(b)?-1:0;
+const VARNA=[2,1,0,3,2,1,0,3,2,1,0,3];
+const VAS=[0,0,1,2,3,1,1,4,1,0,1,2];
+const VM=[[2,1,1,.5,1],[1,2,.5,0,1],[1,.5,2,1,1],[0,0,0,2,0],[1,1,1,0,2]];
+const YO="Ho El Go Sn Sn Do Ca Go Ca Ra Ra Co Bu Ti Bu Ti De De Do Mo Mg Mo Li Ho Li Co El".split(" ");
+const YE=["CoTi","ElLi","HoBu","DoDe","SnMg","MoGo","RaCa"];
+const GA=[0,1,2,1,0,1,0,0,2,2,1,1,0,2,0,2,0,2,2,1,1,0,2,2,1,1,0];
+const GM=[[6,6,1],[5,6,0],[1,0,6]];
+function milan(g,b){const o=[];
+ const add=(n,s,mx,i)=>o.push([n,s,mx,i]);
+ add("वर्ण",VARNA[g.rs]>=VARNA[b.rs]?1:0,1,"");
+ add("वश्य",VM[VAS[g.rs]][VAS[b.rs]],2,"");
+ const t1=((g.nk-b.nk+27)%27)%9+1,t2=((b.nk-g.nk+27)%27)%9+1,bad=[3,5,7];
+ add("तारा",(bad.includes(t1)?0:1.5)+(bad.includes(t2)?0:1.5),3,"");
+ const y1=YO[g.nk],y2=YO[b.nk];
+ add("योनि",y1==y2?4:YE.some(e=>e.includes(y1)&&e.includes(y2))?0:2,4,y1==y2?"समान":"");
+ const l1=LORD[g.rs],l2=LORD[b.rs],sm=rel(l1,l2)+rel(l2,l1);
+ add("ग्रह मैत्री",l1==l2?5:sm==2?5:sm==1?4:sm==-1?.5:sm==-2?0:(rel(l1,l2)==0?3:1),5,P[l1]+" / "+P[l2]);
+ add("गण",GM[GA[g.nk]][GA[b.nk]],6,["देव","मनुष्य","राक्षस"][GA[g.nk]]+" / "+["देव","मनुष्य","राक्षस"][GA[b.nk]]);
+ const dd=((b.rs-g.rs+12)%12)+1;
+ add("भकूट",[2,12,5,9,6,8].includes(dd)?0:7,7,"");
+ const nd=n=>[0,1,2,2,1,0][n%6];
+ add("नाड़ी",nd(g.nk)==nd(b.nk)?0:8,8,["आदि","मध्य","अन्त्य"][nd(g.nk)]);
+ return o}
+
+// ---- render ----
+const TABS=[["k","कुंडली"],["v","विंशोत्तरी"],["a","अष्टोत्तरी"],["s","षड्वर्ग"],["m","मिलान"]];
+function rd(id){return {n:$(id+"n").value,d:$(id+"d").value,t:$(id+"t").value,lat:+$(id+"la").value,lon:+$(id+"lo").value,z:$(id+"z").value===""?null:+$(id+"z").value,tz:$(id+"p").dataset.tz||""}}
+function show(k){document.querySelectorAll(".pane").forEach(p=>p.classList.toggle("on",p.id=="p"+k));
+ document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.k==k))}
+function head(c){return `<p>${c.n}: चंद्र राशि <b>${R[c.rs]}</b>, नक्षत्र <b>${N[c.nk]}</b> (पाद ${Math.floor((c.moon%NW)/(NW/4))+1}), लग्न <b>${R[Math.floor(c.s.Lg/30)]}</b> · UTC${c.z>=0?"+":""}${c.z}</p>`}
+sp("a");sp("b");
+$("go").onclick=()=>{
+ try{
+  const A=calc(rd("a")),B=calc(rd("b")),b=A.utc.getTime();
+  const rows=["Lg",...PL].map(k=>`<tr><td>${k=="Lg"?"लग्न":P[k]}</td><td>${R[Math.floor(A.s[k]/30)]}</td><td>${dm(A.s[k])}</td><td>${N[Math.floor(A.s[k]/NW)]}</td><td>${((Math.floor(A.s[k]/30)-Math.floor(A.s.Lg/30)+12)%12)+1}</td></tr>`).join("");
+  const ms=milan(A,B),tot=ms.reduce((s,x)=>s+x[1],0);
+  const pan={
+   k:head(A)+`<p class="note">लाहिड़ी अयनांश: ${A.ay.toFixed(3)}° · राहु: मध्यम नोड</p>`+`<h2>उत्तर भारतीय</h2>`+nchart(A,1)+`<h2>दक्षिण भारतीय</h2>`+chart(A,1)+`<div class="w"><table><tr><th>ग्रह</th><th>राशि</th><th>अंश</th><th>नक्षत्र</th><th>भाव</th></tr>${rows}</table></div>`,
+   v:head(A)+`<h2>विंशोत्तरी दशा (120 वर्ष)</h2>`+dtab(vim(A),b),
+   a:head(A)+`<h2>अष्टोत्तरी दशा (108 वर्ष)</h2><p class="note">अभिजित के बिना 27 नक्षत्र गणना। लागू होने की शर्त (राहु केंद्र/त्रिकोण में लग्नेश से) अलग से जाँचें।</p>`+dtab(ash(A),b),
+   s:head(A)+`<div class="w"><table><tr><th>ग्रह</th>${VV.map(v=>`<th>${VN[v]}</th>`).join("")}</tr>${["Lg",...PL].map(k=>`<tr><td>${k=="Lg"?"लग्न":P[k]}</td>${VV.map(v=>`<td>${R[vg(A.s[k],v)]}</td>`).join("")}</tr>`).join("")}</table></div>`+`<h2>नवांश (D9)</h2>`+nchart(A,9),
+   m:`<p>${A.n} (${R[A.rs]}, ${N[A.nk]}) और ${B.n} (${R[B.rs]}, ${N[B.nk]})</p><div class="big">${tot} / 36</div><p class="note">${tot>=18?"18 से अधिक: सामान्यतः स्वीकार्य":"18 से कम: सामान्यतः अनुकूल नहीं माना जाता"}${ms[7][1]==0?" · नाड़ी दोष":""}${ms[6][1]==0?" · भकूट दोष":""}</p><div class="w"><table><tr><th>कूट</th><th>प्राप्त</th><th>पूर्णांक</th><th></th></tr>${ms.map(x=>`<tr><td>${x[0]}</td><td>${x[1]}</td><td>${x[2]}</td><td>${x[3]}</td></tr>`).join("")}</table></div>`
+  };
+  $("tabs").innerHTML=TABS.map(t=>`<button data-k="${t[0]}" onclick="show('${t[0]}')">${t[1]}</button>`).join("");
+  $("out").innerHTML=TABS.map(t=>`<div class="pane" id="p${t[0]}">${pan[t[0]]}</div>`).join("");
+  show("k");
+ }catch(e){$("out").innerHTML=`<p>गणना नहीं हो सकी: ${e.message}. तिथि, समय और स्थान जाँचें।</p>`}
+};
+</script></body></html>
